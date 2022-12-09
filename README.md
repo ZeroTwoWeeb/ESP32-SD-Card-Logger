@@ -18,3 +18,4 @@ Built on (<a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverl
 - document detection and creation whithout overwriting old Data
 - Write all errors to error log
 - write important events to log (interrupts, Errors, Storage usage information, Voltage, Suspect values)
+- Chane Ultrasonic-Sensor to US-100

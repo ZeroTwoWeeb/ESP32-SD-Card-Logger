@@ -3,15 +3,6 @@
 // Device to log data from Ultrasonic-Sensor onto SD-Card with Timestamp by RTC
 // The Data can also be shown by a 16x2 LCD Display via button press (interrupt)
 
-//to-do: 
-//-detect voltage Drop(Voltage Sensor)
-//-show SD Usage on Screen
-//-Button to swap LCD Menu
-//-Code efficency/energy efficency
-//-Detect spikes/wrong values from Ultrasonic-Sensor
-//-document detection and creation whithout overwriting old Data
-//-add Error Log
-//-write important events to log (interrupts, Errors, Storage usage, Voltage, Suspect values)
 
 
 #include "RTClib.h"
@@ -116,7 +107,8 @@ void setup()
     createDir(SD, "/logs");
     createDir(SD, "/data");
     listDir(SD, "/data", 0);
-    writeFile(SD, "/data/data.txt", "\n");  //Overwrites old data.txt files!!! need to create Number generation! and check before?(count up from old file nr)
+    writeFile(SD, "/data/data.txt", "\n");
+    writeFile(SD, "/logs/log.txt", "\n");  //Overwrites old data.txt files!!! need to create Number generation! and check before?(count up from old file nr)
     //teste ob datei existiert und wenn nicht dann erstellung...
 }
 
@@ -184,10 +176,12 @@ void createDir(fs::FS &fs, const char *path)
     if (fs.mkdir(path))
     {
         Serial.println("Dir created");
+        appendFile(SD, "logs/log.txt", String("[TASK][SD] created Directory: "+String(path)).c_str());
     }
     else
     {
         Serial.println("mkdir failed");
+        appendFile(SD, "logs/log.txt", String("[ERR][SD] mkdir failed: "+String(path)).c_str());
     }
 }
 
@@ -220,15 +214,18 @@ void writeFile(fs::FS &fs, const char *path, const char *message)
     if (!file)
     {
         Serial.println("Failed to open file for writing");
+        appendFile(SD, "logs/log.txt", String("[ERR][SD] Failed Writing to: "+String(path)).c_str());
         return;
     }
     if (file.print(message))
     {
         Serial.println("File written");
+        appendFile(SD, "logs/log.txt", String("[TASK][SD] Written new File: "+String(path)).c_str());
     }
     else
     {
         Serial.println("Write failed");
+        appendFile(SD, "logs/log.txt", String("[TASK][SD] Write Failed to: "+String(path)).c_str());
     }
     file.close();
 }
@@ -296,6 +293,9 @@ void lcdinterrupt(){
     lcdOn();
   }else{
     appendFile(SD, "logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt").c_str());
+    lcd.clear();
+    lcd.setCursor (0, 0)
+    lcd.print("LCD: OFF...");
     lcdOff();
   }
 }
