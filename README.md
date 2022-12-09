@@ -1,7 +1,7 @@
 # ESP32-SD-Card-Logger
 
 Logger for ESP32 with RTC, LCD and Ultrasonic-sensor.
-The Logger writes the data onto the SD-Card with a timestamp.
+The Logger writes the data into a .txt file onto the SD-Card with a timestamp.
 
 ## Circuit
 
