@@ -294,7 +294,7 @@ void lcdinterrupt(){
   }else{
     appendFile(SD, "logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt").c_str());
     lcd.clear();
-    lcd.setCursor (0, 0)
+    lcd.setCursor (0, 0);
     lcd.print("LCD: OFF...");
     lcdOff();
   }
