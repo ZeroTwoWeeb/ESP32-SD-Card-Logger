@@ -4,4 +4,4 @@ Logger for ESP32 with RTC, LCD and Ultrasonic-sensor.
 
 ## Circuit
 
-![Alt text](./graphics/Circuit.svg)
+![Alt text](./graphics/Circuit.jpg)
