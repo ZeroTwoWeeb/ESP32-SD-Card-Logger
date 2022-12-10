@@ -30,7 +30,9 @@ unsigned int distance;
 
 
 //count Var's
-int i = 0;
+int i = 0; //Var to show how many Datapoints are currently beeing stored(Session only)
+boolean dataFile=false;
+boolean logFile=false;
 boolean lcdStatus = false;
 
 void setup()
@@ -42,7 +44,7 @@ void setup()
 
     pinMode(PIN_TRIGGER, OUTPUT);
     pinMode(PIN_ECHO, INPUT);
-    pinMode ( BACKLIGHT_PIN, OUTPUT );
+    pinMode (BACKLIGHT_PIN, OUTPUT );
     pinMode(LCDBUTTON_PIN, INPUT);
 
     //start LCD
@@ -103,13 +105,18 @@ void setup()
 
     Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
-    listDir(SD, "/data", 0);
+    dataFile = listDir(SD, "/data", 0);
+    logFile = listDir(SD, "/logs", 0);
+
     createDir(SD, "/logs");
     createDir(SD, "/data");
-    listDir(SD, "/data", 0);
-    writeFile(SD, "/data/data.txt", "\n");
-    writeFile(SD, "/logs/log.txt", "\n");  //Overwrites old data.txt files!!! need to create Number generation! and check before?(count up from old file nr)
-    //teste ob datei existiert und wenn nicht dann erstellung...
+    if(dataFile==false){
+      writeFile(SD, "/data/data.txt", "\n"); //Overwrites old data.txt files!!!
+    }
+    if(logFile==false){
+      writeFile(SD, "/logs/log.txt", "\n");  //Overwrites old log.txt files!!!
+    }
+    appendFile(SD, "/data/data.txt", "---\n");
 }
 
 void loop(){
@@ -124,17 +131,17 @@ void loop(){
     i++;
 }
 
-void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+boolean listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     Serial.printf("Listing directory: %s\n", dirname);
 
     File root = fs.open(dirname);
     if(!root){
         Serial.println("Failed to open directory");
-        return;
+        return false;
     }
     if(!root.isDirectory()){
         Serial.println("Not a directory");
-        return;
+        return false;
     }
 
     File file = root.openNextFile();
@@ -142,6 +149,7 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         if(file.isDirectory()){
             Serial.print("  DIR : ");
             Serial.println(file.name());
+            return true;
             if(levels){
                 listDir(fs, file.path(), levels -1);
             }
@@ -150,6 +158,7 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
             Serial.print(file.name());
             Serial.print("  SIZE: ");
             Serial.println(file.size());
+            return true;
         }
         file = root.openNextFile();
     }
@@ -176,12 +185,12 @@ void createDir(fs::FS &fs, const char *path)
     if (fs.mkdir(path))
     {
         Serial.println("Dir created");
-        appendFile(SD, "logs/log.txt", String("[TASK][SD] created Directory: "+String(path)).c_str());
+        appendFile(SD, "/logs/log.txt", String("[TASK][SD] created Directory: "+String(path)+"\n").c_str());
     }
     else
     {
         Serial.println("mkdir failed");
-        appendFile(SD, "logs/log.txt", String("[ERR][SD] mkdir failed: "+String(path)).c_str());
+        appendFile(SD, "/logs/log.txt", String("[ERR][SD] mkdir failed: "+String(path)+"\n").c_str());
     }
 }
 
@@ -214,18 +223,18 @@ void writeFile(fs::FS &fs, const char *path, const char *message)
     if (!file)
     {
         Serial.println("Failed to open file for writing");
-        appendFile(SD, "logs/log.txt", String("[ERR][SD] Failed Writing to: "+String(path)).c_str());
+        appendFile(SD, "/logs/log.txt", String("[ERR][SD] Failed Writing to: "+String(path)+"\n").c_str());
         return;
     }
     if (file.print(message))
     {
         Serial.println("File written");
-        appendFile(SD, "logs/log.txt", String("[TASK][SD] Written new File: "+String(path)).c_str());
+        appendFile(SD, "/logs/log.txt", String("[TASK][SD] Written new File: "+String(path)+"\n").c_str());
     }
     else
     {
         Serial.println("Write failed");
-        appendFile(SD, "logs/log.txt", String("[TASK][SD] Write Failed to: "+String(path)).c_str());
+        appendFile(SD, "/logs/log.txt", String("[TASK][SD] Write Failed to: "+String(path)+"\n").c_str());
     }
     file.close();
 }
@@ -252,14 +261,14 @@ void setLCD(String Line1, String Line2){
       lcd.print(Line1);
     }else{
       //error log soon
-      appendFile(SD, "logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
     }
     if(Line2.length()<16){
       lcd. setCursor (0, 1);
       lcd.print(Line2);
     }else{
       //error log soon
-      appendFile(SD, "logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 2 of LCD Module (ERR STRING < 16)").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 2 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
     }
   }
 }  
@@ -272,7 +281,7 @@ void setLCD(String Line1){
       lcd.print(Line1);
     }else{
       //error log soon
-      appendFile(SD, "logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
     }
   }  
 }
@@ -289,10 +298,10 @@ void lcdOff(){
 void lcdinterrupt(){
   //if lcd is off turn it on else of
   if(lcdStatus==false){
-    appendFile(SD, "logs/log.txt", String("[STATUS][LCD] lcd turned on by interrupt").c_str());
+    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned on by interrupt"+String("\n")).c_str());
     lcdOn();
   }else{
-    appendFile(SD, "logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt").c_str());
+    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt"+String("\n")).c_str());
     lcd.clear();
     lcd.setCursor (0, 0);
     lcd.print("LCD: OFF...");

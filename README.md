@@ -19,7 +19,8 @@ Built on <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlo
 
 ## Warning
 
-The RTC Time isnt adjusted at the start!!
+- The RTC Time isnt adjusted at the start!!
+- The Pins on the ESP-32 may be different on other ESP-32 versions
 
 ## TO-DO
 
@@ -28,8 +29,9 @@ The RTC Time isnt adjusted at the start!!
 - Button to swap LCD Menu
 - Code efficency/energy efficency
 - Detect spikes/wrong values from Ultrasonic-Sensor
-- Document detection and creation whithout overwriting old Data
 - Write all errors (not related to sd Card Errors) to error log
 - Show SD-Card Errors On Screen
 - Write important events to log (interrupts, Errors, Storage usage information, Voltage, Suspect values)
 - Change Ultrasonic-Sensor to US-100
+- add Deep-Sleep for minimal power consumption
+- add button to reset SD Storage
