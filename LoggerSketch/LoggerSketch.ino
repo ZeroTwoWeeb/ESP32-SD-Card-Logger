@@ -12,10 +12,13 @@
 #include "LiquidCrystal.h"
 
 
+
 #define PIN_TRIGGER 16
 #define PIN_ECHO 17
 #define BACKLIGHT_PIN 12
 #define LCDBUTTON_PIN 35
+#define uS_TO_S_FACTOR 1000000
+#define SECONDS_TO_SLEEP 10
 
 
 RTC_DS3231 rtc;
@@ -24,27 +27,28 @@ RTC_DS3231 rtc;
 LiquidCrystal lcd(32, 33, 25, 26, 27, 14);
 
 //Supersonic-Sensor Var's
-const int SENSOR_MAX_RANGE = 300; // in cm
-unsigned long duration;
-unsigned int distance;
+RTC_DATA_ATTR const int SENSOR_MAX_RANGE = 300; // in cm
+RTC_DATA_ATTR unsigned long duration;
+RTC_DATA_ATTR unsigned int distance;
 
 
 //count Var's
-int i = 0; //Var to show how many Datapoints are currently beeing stored(Session only)
-boolean dataFile=false;
-boolean logFile=false;
-boolean lcdStatus = false;
+RTC_DATA_ATTR int i = 0; //Var to show how many Datapoints are currently beeing stored(Session only)
+RTC_DATA_ATTR boolean lcdStatus = false;
+RTC_DATA_ATTR int bootCount = 0;
 
 void setup()
 {
- 
     Serial.begin(115200);
+    log_d("Serial Begin...");
+
+    getWakeUpReason();
 
     attachInterrupt(LCDBUTTON_PIN, lcdinterrupt, RISING);
 
     pinMode(PIN_TRIGGER, OUTPUT);
     pinMode(PIN_ECHO, INPUT);
-    pinMode (BACKLIGHT_PIN, OUTPUT );
+    pinMode(BACKLIGHT_PIN, OUTPUT );
     pinMode(LCDBUTTON_PIN, INPUT);
 
     //start LCD
@@ -55,14 +59,14 @@ void setup()
 
     if (!rtc.begin())
     {
-        Serial.println("Couldn't find RTC");
+        log_e("Couldn't find RTC");
         while (1)
             ;
     }
 
     if (rtc.lostPower())
     {
-        Serial.println("RTC lost power, lets set the time!");
+        log_e("RTC lost power, lets set the time!");
         // following line sets the RTC to the date &amp; time this sketch was compiled
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         // This line sets the RTC with an explicit date &amp; time, for example to set
@@ -71,33 +75,33 @@ void setup()
     }
     if (!SD.begin())
     {
-        Serial.println("Card Mount Failed");
+        log_e("Card Mount Failed");
         return;
     }
     uint8_t cardType = SD.cardType();
 
     if (cardType == CARD_NONE)
     {
-        Serial.println("No SD card attached");
+        log_e("No SD card attached");
         return;
     }
 
-    Serial.print("SD Card Type: ");
+    log_d("SD Card Type: ");
     if (cardType == CARD_MMC)
     {
-        Serial.println("MMC");
+        log_d("MMC");
     }
     else if (cardType == CARD_SD)
     {
-        Serial.println("SDSC");
+        log_d("SDSC");
     }
     else if (cardType == CARD_SDHC)
     {
-        Serial.println("SDHC");
+        log_d("SDHC");
     }
     else
     {
-        Serial.println("UNKNOWN");
+        log_d("UNKNOWN");
     }
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
@@ -105,15 +109,21 @@ void setup()
 
     Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
-    dataFile = listDir(SD, "/data", 0);
-    logFile = listDir(SD, "/logs", 0);
+    Serial.printf("Free space: %lluMB\n", (SD.totalBytes() / (1024 * 1024))- (SD.usedBytes() / (1024 * 1024)));
 
-    createDir(SD, "/logs");
-    createDir(SD, "/data");
-    if(dataFile==false){
+
+    if (!SD.exists("/data")) {
+      createDir(SD, "/data");
+    }
+    if (!SD.exists("/logs")) {
+      createDir(SD, "/logs");
+    }
+
+
+    if(!SD.exists("/data/data.txt")){
       writeFile(SD, "/data/data.txt", "\n"); //Overwrites old data.txt files!!!
     }
-    if(logFile==false){
+    if(!SD.exists("/logs/log.txt")){
       writeFile(SD, "/logs/log.txt", "\n");  //Overwrites old log.txt files!!!
     }
     appendFile(SD, "/data/data.txt", "---\n");
@@ -127,8 +137,8 @@ void loop(){
     Serial.println(getDistance());
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
     setLCD(String(String(now.month())+"/"+String(now.day())+" "+String(now.hour())+":"+String(now.minute())), getDistance());
-    delay(1000);
     i++;
+    gotoSleep();
 }
 
 boolean listDir(fs::FS &fs, const char * dirname, uint8_t levels){
@@ -136,11 +146,11 @@ boolean listDir(fs::FS &fs, const char * dirname, uint8_t levels){
 
     File root = fs.open(dirname);
     if(!root){
-        Serial.println("Failed to open directory");
+        log_e("Failed to open directory");
         return false;
     }
     if(!root.isDirectory()){
-        Serial.println("Not a directory");
+        log_e("Not a directory");
         return false;
     }
 
@@ -297,14 +307,57 @@ void lcdOff(){
 
 void lcdinterrupt(){
   //if lcd is off turn it on else of
+  DateTime now = rtc.now();
+  Serial.println("Interrupt");
   if(lcdStatus==false){
-    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned on by interrupt"+String("\n")).c_str());
+    appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[STATUS][LCD] lcd turned on by interrupt"+String("\n")).c_str());
     lcdOn();
   }else{
-    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt"+String("\n")).c_str());
+    appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[STATUS][LCD] lcd turned off by interrupt"+String("\n")).c_str());
     lcd.clear();
     lcd.setCursor (0, 0);
     lcd.print("LCD: OFF...");
     lcdOff();
+  }
+}
+
+
+void gotoSleep() {
+
+  log_d("Going to sleep");
+  
+  // Allow wake up if Button Switch is pressed
+  //esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PIN, LOW);  // could use: GPIO_NUM_26
+
+  // Allow RTC to wake up this device after X seconds
+  esp_sleep_enable_timer_wakeup(SECONDS_TO_SLEEP * uS_TO_S_FACTOR);
+
+  // Sleep starts
+  esp_deep_sleep_start();
+}
+
+
+void getWakeUpReason() {
+  log_w("This is (re)boot #%d", ++bootCount);
+
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0:
+      log_w("Wakeup caused by external signal using RTC_IO");
+      break;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      log_w("Wakeup caused by external signal using RTC_CNTL");
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      log_w("Wakeup caused by RTC timer");
+      break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+      log_w("Wakeup caused by touchpad");
+      break;
+    case ESP_SLEEP_WAKEUP_ULP:
+      log_w("Wakeup caused by ULP program");
+      break;
+    default:
+      log_w("Wakeup was not caused by deep sleep: %d", wakeup_reason);
   }
 }
