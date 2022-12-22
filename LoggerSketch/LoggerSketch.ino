@@ -16,9 +16,11 @@
 #define PIN_TRIGGER 16
 #define PIN_ECHO 17
 #define BACKLIGHT_PIN 12
-#define LCDBUTTON_PIN 35
+#define LCDBUTTON_PIN 34
 #define uS_TO_S_FACTOR 1000000
 #define SECONDS_TO_SLEEP 10
+#define Sample_Nr 5 //from how many values the average should be taken(Ultrasonic-Sensor)
+//#define CONFIG_ESP_INT_WDT_TIMEOUT_MS 2000
 
 
 RTC_DS3231 rtc;
@@ -42,7 +44,7 @@ void setup()
     Serial.begin(115200);
     log_d("Serial Begin...");
 
-    getWakeUpReason();
+
 
     attachInterrupt(LCDBUTTON_PIN, lcdinterrupt, RISING);
 
@@ -118,15 +120,15 @@ void setup()
     if (!SD.exists("/logs")) {
       createDir(SD, "/logs");
     }
-
-
     if(!SD.exists("/data/data.txt")){
       writeFile(SD, "/data/data.txt", "\n"); //Overwrites old data.txt files!!!
     }
     if(!SD.exists("/logs/log.txt")){
       writeFile(SD, "/logs/log.txt", "\n");  //Overwrites old log.txt files!!!
     }
+
     appendFile(SD, "/data/data.txt", "---\n");
+    getWakeUpReason();
 }
 
 void loop(){
@@ -135,10 +137,13 @@ void loop(){
 
     appendFile(SD, "/data/data.txt", String(now.timestamp()+", "+String(i)+", "+getDistance()+"\n").c_str());
     Serial.println(getDistance());
-    Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
     setLCD(String(String(now.month())+"/"+String(now.day())+" "+String(now.hour())+":"+String(now.minute())), getDistance());
     i++;
-    gotoSleep();
+    delay(1000);
+    if (lcdStatus==false) {
+      gotoSleep();
+    }
+    
 }
 
 boolean listDir(fs::FS &fs, const char * dirname, uint8_t levels){
@@ -251,14 +256,21 @@ void writeFile(fs::FS &fs, const char *path, const char *message)
 
 String getDistance(){
     int duration;
-    float distance;
+    float distance[Sample_Nr];
+    // change to US-100 take 5-10 values and return average (maybe check for far of values)
+    for (int counter = 0; counter < Sample_Nr; counter++) {
     digitalWrite(PIN_TRIGGER, HIGH);
     delayMicroseconds(500);
     digitalWrite(PIN_TRIGGER, LOW);
     duration = pulseIn(PIN_ECHO, HIGH);
-    distance = (duration / 2.0) / 2.91;
+    distance[counter] = (duration / 2.0) / 2.91;
+    }
+    long sum = 0L ;  // sum will be larger than an item, long for safety.
+    for (int counter = 0 ; counter < Sample_Nr ; counter++)
+      sum += distance[counter] ;
+    return  String(String(((float) sum) / Sample_Nr)+"mm").c_str();  // average will be fractional, so float may be appropriate.
     
-    return String(String(distance)+String(" mm")).c_str();
+    //return String(String(distance)+String(" mm")).c_str();
 }
 
 void setLCD(String Line1, String Line2){
@@ -269,16 +281,18 @@ void setLCD(String Line1, String Line2){
       Serial.print(Line1.length(), DEC);
       lcd.setCursor (0, 0);
       lcd.print(Line1);
+      log_d("wrote LCD line 1");
     }else{
       //error log soon
-      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
     if(Line2.length()<16){
       lcd. setCursor (0, 1);
       lcd.print(Line2);
+      log_d("wrote LCD line 2");
     }else{
       //error log soon
-      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 2 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 2 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
   }
 }  
@@ -289,9 +303,10 @@ void setLCD(String Line1){
       lcd.clear();
       lcd.setCursor (0, 0);
       lcd.print(Line1);
+      log_d("wrote LCD line 1");
     }else{
       //error log soon
-      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)"+"\n").c_str()); 
+      appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
   }  
 }
@@ -307,13 +322,11 @@ void lcdOff(){
 
 void lcdinterrupt(){
   //if lcd is off turn it on else of
-  DateTime now = rtc.now();
-  Serial.println("Interrupt");
   if(lcdStatus==false){
-    appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[STATUS][LCD] lcd turned on by interrupt"+String("\n")).c_str());
+    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned on by interrupt\n").c_str());
     lcdOn();
   }else{
-    appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[STATUS][LCD] lcd turned off by interrupt"+String("\n")).c_str());
+    appendFile(SD, "/logs/log.txt", String("[STATUS][LCD] lcd turned off by interrupt\n").c_str());
     lcd.clear();
     lcd.setCursor (0, 0);
     lcd.print("LCD: OFF...");
@@ -327,7 +340,7 @@ void gotoSleep() {
   log_d("Going to sleep");
   
   // Allow wake up if Button Switch is pressed
-  //esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PIN, LOW);  // could use: GPIO_NUM_26
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)LCDBUTTON_PIN, 1);  // could use: GPIO_NUM_26
 
   // Allow RTC to wake up this device after X seconds
   esp_sleep_enable_timer_wakeup(SECONDS_TO_SLEEP * uS_TO_S_FACTOR);
@@ -344,9 +357,11 @@ void getWakeUpReason() {
   switch (wakeup_reason) {
     case ESP_SLEEP_WAKEUP_EXT0:
       log_w("Wakeup caused by external signal using RTC_IO");
+      lcdOn();
       break;
     case ESP_SLEEP_WAKEUP_EXT1:
       log_w("Wakeup caused by external signal using RTC_CNTL");
+      lcdOn();
       break;
     case ESP_SLEEP_WAKEUP_TIMER:
       log_w("Wakeup caused by RTC timer");
@@ -361,3 +376,4 @@ void getWakeUpReason() {
       log_w("Wakeup was not caused by deep sleep: %d", wakeup_reason);
   }
 }
+
