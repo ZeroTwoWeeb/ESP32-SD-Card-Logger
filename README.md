@@ -19,7 +19,7 @@ Built on <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlo
 - <a href="https://www.az-delivery.de/products/ds3231-real-time-clock">Real-Time-Clock</a> (DS3231)
 - <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlotet">ESP32-WROOM-32</a>
 
-## <p style="color:red;">Warning</p>
+## Warning
 
 - The Pinout maybe diffenet on your ESP32-Board. Check the datasheet.
 
@@ -30,5 +30,5 @@ Built on <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlo
 - Integrate a menu system
 - Integrate a button to switch between menus
 - Show SD-Card errors on screen
-- Log important events <p style="color:lightblue;">e.g. Interrupts, Errors, Storage Usage Information, Voltage, Unusual Values</p>
+- Log important events e.g. Interrupts, Errors, Storage Usage Information, Voltage, Unusual Values
 - Swap Ultrasonic-Sensor out for version US-100
