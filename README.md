@@ -10,6 +10,9 @@ Built on <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlo
 
 ## Parts
 
+- Simple button
+- 10k Potentiometer
+- 10k Ohm resistor
 - <a href="https://www.az-delivery.de/products/3er-set-hc-sr04-ultraschallmodule">Ultrasonic-Sensor</a> (HC-SR04)
 - <a href="https://www.amazon.de/-/en/SUNFOUNDER-SD-Card-Module-Arduino/dp/B07R6HQGS1/ref=sr_1_4?crid=2JJTJ383MF7DM&keywords=sd-kartenmodul&qid=1670612869&sprefix=sd-card+module%2Caps%2C134&sr=8-4">SD-Card Module</a> (Standard size SD)
 - <a href="https://www.az-delivery.de/products/16x2-lcd-blaues-display">LCD 16x2</a>
