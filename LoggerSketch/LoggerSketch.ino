@@ -16,7 +16,7 @@
 #define PIN_TRIGGER 16
 #define PIN_ECHO 17
 #define BACKLIGHT_PIN 12
-#define LCDBUTTON_PIN 34
+#define LCDBUTTON_PIN 35
 #define uS_TO_S_FACTOR 1000000
 #define SECONDS_TO_SLEEP 10
 #define Sample_Nr 5 //from how many values the average should be taken(Ultrasonic-Sensor)
