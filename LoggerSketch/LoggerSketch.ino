@@ -136,7 +136,7 @@ void loop(){
     Serial.println(now.timestamp());
 
     appendFile(SD, "/data/data.txt", String(now.timestamp()+", "+String(i)+", "+getDistance()+"\n").c_str());
-    Serial.println(getDistance());
+    Serial.print(getDistance()+"\n");
     setLCD(String(String(now.month())+"/"+String(now.day())+" "+String(now.hour())+":"+String(now.minute())), getDistance());
     i++;
     delay(1000);
@@ -270,28 +270,25 @@ String getDistance(){
       sum += distance[counter] ;
     return  String(String(((float) sum) / Sample_Nr)+"mm").c_str();  // average will be fractional, so float may be appropriate.
     
-    //return String(String(distance)+String(" mm")).c_str();
 }
 
 void setLCD(String Line1, String Line2){
   if(lcdStatus==true){
     DateTime now = rtc.now();
     lcd.clear();
+    //set Line1
+    lcd.setCursor (0, 0);
+    lcd.print(Line1);
+    log_d("wrote LCD line 1");
+    //set Line2
+    lcd. setCursor (0, 1);
+    lcd.print(Line2);
+    log_d("wrote LCD line 2");
+
     if(Line1.length()<16){
-      Serial.print(Line1.length(), DEC);
-      lcd.setCursor (0, 0);
-      lcd.print(Line1);
-      log_d("wrote LCD line 1");
-    }else{
-      //error log soon
       appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
     if(Line2.length()<16){
-      lcd. setCursor (0, 1);
-      lcd.print(Line2);
-      log_d("wrote LCD line 2");
-    }else{
-      //error log soon
       appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 2 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
   }
@@ -299,13 +296,12 @@ void setLCD(String Line1, String Line2){
 void setLCD(String Line1){
   if(lcdStatus==true){
     DateTime now = rtc.now();
+    lcd.clear();
+    lcd.setCursor (0, 0);
+    lcd.print(Line1);
+    log_d("wrote LCD line 1");
+
     if(!Line1.length()<16){
-      lcd.clear();
-      lcd.setCursor (0, 0);
-      lcd.print(Line1);
-      log_d("wrote LCD line 1");
-    }else{
-      //error log soon
       appendFile(SD, "/logs/log.txt", String(now.timestamp()+"[ERR] [SD] Error while Setting Line 1 of LCD Module (ERR STRING < 16)\n").c_str()); 
     }
   }  
