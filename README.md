@@ -1,3 +1,5 @@
+![Version](https://img.shields.io/github/v/release/ZeroTwoWeeb/ESP32-SD-Card-Logger?include_prereleases)
+
 # ESP32-SD-Card-Logger
 
 A simple SD-Card Logger for the ESP-WROOM-32 with RTC, LCD and Ultrasonic-sensor.
