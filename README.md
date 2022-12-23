@@ -23,7 +23,7 @@ Built on <a href="https://www.az-delivery.de/products/esp32-dev-kit-c-v4-unverlo
 
 ## Warning
 
-- The Pinout maybe diffenet on your ESP32-Board. Check the datasheet.
+- The Pinout maybe different on your ESP32-Board. Check the datasheet.
 
 ## TO-DO
 
