@@ -1,4 +1,5 @@
 ![Version](https://img.shields.io/github/v/release/ZeroTwoWeeb/ESP32-SD-Card-Logger?include_prereleases)
+![License](https://img.shields.io/github/license/ZeroTwoWeeb/ESP32-SD-Card-Logger)
 
 # ESP32-SD-Card-Logger
 
