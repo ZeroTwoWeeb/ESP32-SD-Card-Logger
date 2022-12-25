@@ -1,7 +1,7 @@
 #define V_ADC_PIN 39
-float R1 = 30000.0;
-float R2 = 7500.0;
 #define REF_VOLTAGE 3.3
+#define VOLTAGE_CORRECTION 0.5
+#define FAKTOR 0.2
 
 float adc_voltage;
 
@@ -20,9 +20,12 @@ void loop()
 String getVoltage()
 {
     adc_voltage = analogRead(V_ADC_PIN);
-    Serial.println("Analog read:" + String(adc_voltage));
-    adc_voltage = adc_voltage * (R2 / (R1 + R2));
-    adc_voltage = (adc_voltage * REF_VOLTAGE) / 1024.0;
-    Serial.printf("Voltage: %f", adc_voltage);
+    Serial.println(adc_voltage);
+    adc_voltage = (adc_voltage * 3.3) / 4096.0;
+    Serial.println(adc_voltage);
+    adc_voltage = adc_voltage / FAKTOR;
+    Serial.println(adc_voltage);
+    adc_voltage += VOLTAGE_CORRECTION;
+    Serial.println(adc_voltage);
     return String(adc_voltage);
 }

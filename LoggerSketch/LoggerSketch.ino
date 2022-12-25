@@ -15,7 +15,7 @@
 #define LCDBUTTON_PIN 35
 #define uS_TO_S_FACTOR 1000000
 #define SECONDS_TO_SLEEP 10
-#define Sample_Nr 5 // from how many values the average should be taken(Ultrasonic-Sensor)
+#define SAMPLE_NR 5 // from how many values the average should be taken(Ultrasonic-Sensor)
 // #define CONFIG_ESP_INT_WDT_TIMEOUT_MS 2000
 
 RTC_DS3231 rtc;
@@ -126,7 +126,7 @@ void setup()
     writeFile(SD, "/logs/log.txt", "\n"); // Overwrites old log.txt files!!!
   }
 
-  appendFile(SD, "/data/data.txt", "---\n");
+  // appendFile(SD, "/data/data.txt", "---\n");
   getWakeUpReason();
 }
 
@@ -135,7 +135,7 @@ void loop()
   DateTime now = rtc.now();
   Serial.println(now.timestamp());
 
-  appendFile(SD, "/data/data.txt", String(now.timestamp() + ", " + String(i) + ", " + getDistance() + "\n").c_str());
+  appendFile(SD, "/data/data.txt", String(now.timestamp() + "; " + String(i) + "; " + getDistance() + "\n").c_str());
   Serial.print(getDistance() + "\n");
   setLCD(String(String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + ":" + String(now.minute())), getDistance());
   i++;
@@ -265,9 +265,9 @@ void writeFile(fs::FS &fs, const char *path, const char *message)
 String getDistance()
 {
   int duration;
-  float distance[Sample_Nr];
+  float distance[SAMPLE_NR];
   // change to US-100 take 5-10 values and return average (maybe check for far of values)
-  for (int counter = 0; counter < Sample_Nr; counter++)
+  for (int counter = 0; counter < SAMPLE_NR; counter++)
   {
     digitalWrite(PIN_TRIGGER, HIGH);
     delayMicroseconds(500);
@@ -276,9 +276,14 @@ String getDistance()
     distance[counter] = (duration / 2.0) / 2.91;
   }
   long sum = 0L; // sum will be larger than an item, long for safety.
-  for (int counter = 0; counter < Sample_Nr; counter++)
+  for (int counter = 0; counter < SAMPLE_NR; counter++)
+  {
     sum += distance[counter];
-  return String(String(((float)sum) / Sample_Nr) + "mm").c_str(); // average will be fractional, so float may be appropriate.
+  }
+  float resultFloat = ((float)sum) / SAMPLE_NR;
+  String resultString = String(resultFloat);
+  resultString.replace(".", ",");
+  return resultString.c_str(); // average will be fractional, so float may be appropriate.
 }
 
 void setLCD(String Line1, String Line2)
